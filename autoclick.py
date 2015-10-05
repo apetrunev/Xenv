@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+import re
 import sys
 import getopt
 import random
@@ -10,6 +11,7 @@ import csv
 import codecs
 import subprocess
 import ConfigParser
+import MySQLdb
 
 from selenium import webdriver
 from selenium.webdriver.common.proxy import *
@@ -18,18 +20,25 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 
-def usage():	
-  print "%s -p addr:port | --proxy addr:port" % os.path.basename(sys.argv[0])
+# Database
+db = None
+cursor = None 
+# Browser
+browser = None
 
-def autoclick(proxy, downloaddir, username, password):
+def usage():	
+  print "Usage information"
+
+def autoclick(ya_context):
+  global browser
   url_auth = "https://passport.yandex.ru/auth"
   url_direct = "https://direct.yandex.ru/registered/main.pl?cmd=showCamps"
 
   proxy = Proxy({
     'proxyType': ProxyType.MANUAL,
-    'httpProxy': proxy,
-    'ftpProxy': proxy,
-    'sslProxy': proxy,
+    'httpProxy': ya_context['proxy'],
+    'ftpProxy': ya_context['proxy'],
+    'sslProxy': ya_context['proxy'],
     'noProxy' : ''
   })
 
@@ -38,7 +47,7 @@ def autoclick(proxy, downloaddir, username, password):
   # set custom location
   profile.set_preference('browser.download.folderList', 2)
   profile.set_preference('browser.download.manager.showWhenStarting', False)
-  profile.set_preference('browser.download.dir', downloaddir)
+  profile.set_preference('browser.download.dir', ya_context['download'])
   profile.set_preference('browser.helperApps.neverAsk.saveToDisk', stream_type)
   profile.set_preference("browser.cache.disk.enable", False);
   profile.set_preference("browser.cache.memory.enable", False);
@@ -46,96 +55,130 @@ def autoclick(proxy, downloaddir, username, password):
   profile.set_preference("network.http.use-cache", False);
   
   browser = webdriver.Firefox(proxy=proxy, firefox_profile=profile)
-  browser.set_window_size(1366, 768)
+  browser.set_window_size(ya_context['resolution_w'], ya_context['resolution_h'])
+  
   browser.get(url_auth)
   # find authentication form
   html_login  = browser.find_element_by_xpath("//input[@id='login']")
   html_passwd = browser.find_element_by_xpath("//input[@id='passwd']")
   html_submit = browser.find_element_by_xpath("//button[@type='submit']")
-  # send credentials 
+  # send context 
   html_login.clear()
-  html_login.send_keys(username)
+  html_login.send_keys(ya_context['login'])
   html_passwd.clear()
-  html_passwd.send_keys(password)
+  html_passwd.send_keys(ya_context['password'])
   html_submit.click()
   # jump to the page with campaigns
   browser.get(url_direct)
   # jump to the page with the statistic
-  html_stat = browser.find_element_by_link_text('Статистика')
-  html_stat.click()
-  # download statistic info
+  browser.find_element_by_link_text('Статистика').click()
+  # today
   browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
   browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
-  # do not understand how it works
+  # download as XLS-file
   browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
-  browser.find_element_by_link_text('скачать в виде XLS-файла').click()
-  browser.find_element_by_link_text('Выход').click()
-  browser.quit()
+  #browser.find_element_by_xpath('//div/a/span').click()
+  browser.find_element_by_link_text("скачать в виде XLS-файла").click()
+  # browser.find_element_by_xpath('//td[6]/table/tbody/tr/td[2]/a').click()
 
+def statistics2db(ya_context):
+  global db, cursor
+
+  files = os.listdir(ya_context['download'])
+  devnull = open('/dev/null', 'w')
+  # convert xls to csv
+  for file in files:
+    base, ext = file.split('.')
+    xlspath = ya_context['download'] + '/' + file
+    csvpath = ya_context['download'] + '/' + base + '.csv'
+    subprocess.call(["ssconvert", xlspath, csvpath], stdout=devnull, stderr=devnull)
+  # remove xls files  
+  for file in files:
+    os.remove(ya_context['download'] + '/' + file)
+  # parse csv files
+  stats = os.listdir(ya_context['download'])
+  for stat in stats:
+    year, month, day, _, _, _ = stat.split('-')
+    # get date for statistic
+    date = year + '-' + month + '-' + day
+    with open(ya_context['download'] + '/' + stat, 'r') as csv_file:
+      data = csv.reader(csv_file, delimiter=',')
+      keys = []
+      values = [] 
+    
+      for row in data:
+        if data.line_num == 2:
+          for col in xrange(3, len(row) - 1):
+            key = unicode(row[col], "utf-8")
+            keys.append(key)
+        elif data.line_num == 3:
+          for col in xrange(3, len(row) - 1):
+            value = unicode(row[col], "utf-8")
+            values.append(value) 
+         
+      for idx in xrange(1, len(keys) - 1):
+        str = u"%s\n" % keys[idx]
+	print str	  
+       
 def main():
+  global db, cursor
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "p:", ["proxy=", "conf=", "dir="])
+    opts, args = getopt.getopt(sys.argv[1:], "p:", [ "proxy=", "conf=", "id=", "yesterday", "today" ])
   except getopt.GetoptError as err:
     print str(err)
     usage()
     sys.exit(1)
+  
+  TIME = None
 	
   for o, a in opts:
     if o in ("-p", "--proxy"):
       PROXY = a
     elif o in ("--conf"):
       CONF = a
-    elif o in ("--dir"):
-      DOWNLOADDIR = a 
+    elif o in ("--id"):
+      ID = a
+    elif o in ("--today"):
+      TIME = "сегодня"
+    elif o in ("--yesterday"):
+      TIME = "вчера"
     else:
       assert False, "unhandled option"
+   
+  # default value 
+  if TIME is None:
+    TIME = "сегодня"
 
   config = ConfigParser.RawConfigParser()
   config.read(CONF)
   
-  username = config.get('Credentials', 'username')
-  password = config.get('Credentials', 'password')
+  user = config.get('Database', 'user')
+  password = config.get('Database', 'password')
+  host = config.get('Database', 'host')
+  database = config.get('Database', 'database')
+  # dir to download stat file 
+  download = config.get('Common', 'download')
+  # look up database for data
+  db = MySQLdb.connect(host=host, user=user, passwd=password, db=database)
+  cursor = db.cursor()  
+  cursor.execute("SELECT * FROM account WHERE id=" + ID)
+  db.commit()
+  rows = cursor.fetchall()
+  
+  ya_context = {}
+  ya_context['login'] = rows[0][1]
+  ya_context['password'] = rows[0][2] 
+  ya_context['resolution_w'], ya_context['resolution_h'] = rows[0][3].split('x')
+  ya_context['campaign_name'] = rows[0][4]
+  ya_context['user_agent'] = rows[0][5]
+  ya_context['proxy'] = PROXY
+  ya_context['download'] = download
+  ya_context['time'] = TIME
+ 
   # loging to yandex direct and download a file whith a statistic for today
-  autoclick(PROXY, DOWNLOADDIR, username, password)
-  # now convert this file from xls to csv
-  files = os.listdir(DOWNLOADDIR)
-  xlsname, _ = os.path.splitext(files[0])
-  xlspath = DOWNLOADDIR + "/" + files[0]
-  csvpath = DOWNLOADDIR + "/" + xlsname + ".csv"
-  txtpath = DOWNLOADDIR + "/" + xlsname + ".txt"
-  # run util to convert xls to csv
-  subprocess.call(["ssconvert", xlspath, csvpath])
+  autoclick(ya_context)
+  statistics2db(ya_context)
+  db.close()
 
-  for file in os.listdir(DOWNLOADDIR):
-    if file.endswith(".csv"):
-      csv_path = DOWNLOADDIR + "/" + file
-      with open(csv_path, 'r') as csv_file:
-        csv_data = csv.reader(csv_file, delimiter=',')
-        keys = []
-	values = []
-	for row in csv_data:
-          if csv_data.line_num == 2:
-            for col in xrange(3, len(row) - 1):
-              key = unicode(row[col], "utf-8")
-              keys.append(key)
-          elif csv_data.line_num == 3:
-            for col in xrange(3, len(row) - 1):
-              value = unicode(row[col], "utf-8")
-              values.append(value)
-    
-        fd = codecs.open(txtpath, "w", "utf-8")
-  
-        for idx in xrange(1, len(keys) - 1):
-          str = u"%s -- (%s)\n" % (keys[idx], values[idx])
-          fd.write(str)
-   
-        fd.close()
-
-  for file in os.listdir(DOWNLOADDIR):
-    if file.endswith(".txt"):
-      pass
-    else:
-      os.remove(DOWNLOADDIR + "/" + file) 
-  
-if __name__ == "__main__":
+if __name__=="__main__":
   main()
