@@ -72,8 +72,12 @@ def autoclick(ya_context):
   browser.get(url_direct)
   # jump to the page with the statistic
   browser.find_element_by_link_text('Статистика').click()
-  # today
-  browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
+  
+  if "сегодня" in ya_context['time']:
+    browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
+  elif "вчера" in ya_context['time']:
+    browser.find_element_by_xpath('//span[text() = "вчера"]').click()
+ 
   browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
   # download as XLS-file
   browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
@@ -129,7 +133,7 @@ def main():
     usage()
     sys.exit(1)
   
-  TIME = None
+  TIME = "сегодня"
 	
   for o, a in opts:
     if o in ("-p", "--proxy"):
@@ -145,10 +149,6 @@ def main():
     else:
       assert False, "unhandled option"
    
-  # default value 
-  if TIME is None:
-    TIME = "сегодня"
-
   config = ConfigParser.RawConfigParser()
   config.read(CONF)
   
