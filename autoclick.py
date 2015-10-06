@@ -72,69 +72,38 @@ def autoclick(ya_context):
   browser.get(url_direct)
   # jump to the page with the statistic
   browser.find_element_by_link_text('Статистика').click()
-  
-  if "сегодня" in ya_context['time']:
-    browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
-  elif "вчера" in ya_context['time']:
-    browser.find_element_by_xpath('//span[text() = "вчера"]').click()
- 
+  #
+  # today
+  #
+  browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
   browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
   # download as XLS-file
+  time.sleep(5)
   browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
-  #browser.find_element_by_xpath('//div/a/span').click()
-  browser.find_element_by_link_text("скачать в виде XLS-файла").click()
-  # browser.find_element_by_xpath('//td[6]/table/tbody/tr/td[2]/a').click()
+  browser.find_element_by_xpath('//div/a/span').click()
+  #
+  # yesterday
+  #
+  browser.find_element_by_xpath('//span[text() = "вчера"]').click()
+  browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
+  # download as XLS-file
+  time.sleep(5)
+  browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
+  browser.find_element_by_xpath('//div/a/span').click()
+  #browser.find_element_by_link_text("скачать в виде XLS-файла").click()
+  #browser.find_element_by_xpath('//td[6]/table/tbody/tr/td[2]/a').click()
 
-def statistics2db(ya_context):
-  global db, cursor
-
-  files = os.listdir(ya_context['download'])
-  devnull = open('/dev/null', 'w')
-  # convert xls to csv
-  for file in files:
-    base, ext = file.split('.')
-    xlspath = ya_context['download'] + '/' + file
-    csvpath = ya_context['download'] + '/' + base + '.csv'
-    subprocess.call(["ssconvert", xlspath, csvpath], stdout=devnull, stderr=devnull)
-  # remove xls files  
-  for file in files:
-    os.remove(ya_context['download'] + '/' + file)
-  # parse csv files
-  stats = os.listdir(ya_context['download'])
-  for stat in stats:
-    year, month, day, _, _, _ = stat.split('-')
-    # get date for statistic
-    date = year + '-' + month + '-' + day
-    with open(ya_context['download'] + '/' + stat, 'r') as csv_file:
-      data = csv.reader(csv_file, delimiter=',')
-      keys = []
-      values = [] 
-    
-      for row in data:
-        if data.line_num == 2:
-          for col in xrange(3, len(row) - 1):
-            key = unicode(row[col], "utf-8")
-            keys.append(key)
-        elif data.line_num == 3:
-          for col in xrange(3, len(row) - 1):
-            value = unicode(row[col], "utf-8")
-            values.append(value) 
-         
-      for idx in xrange(1, len(keys) - 1):
-        str = u"%s\n" % keys[idx]
-	print str	  
-       
 def main():
   global db, cursor
   try:
-    opts, args = getopt.getopt(sys.argv[1:], "p:", [ "proxy=", "conf=", "id=", "yesterday", "today" ])
+    opts, args = getopt.getopt(sys.argv[1:], "p:", [ "proxy=", "conf=", "id=",  "dir="])
   except getopt.GetoptError as err:
     print str(err)
     usage()
     sys.exit(1)
   
-  TIME = "сегодня"
-	
+  DOWNLOAD = ""
+ 
   for o, a in opts:
     if o in ("-p", "--proxy"):
       PROXY = a
@@ -142,10 +111,8 @@ def main():
       CONF = a
     elif o in ("--id"):
       ID = a
-    elif o in ("--today"):
-      TIME = "сегодня"
-    elif o in ("--yesterday"):
-      TIME = "вчера"
+    elif o in ("--dir"):
+      DOWNLOAD = a
     else:
       assert False, "unhandled option"
    
@@ -158,7 +125,11 @@ def main():
   database = config.get('Database', 'database')
   # dir to download stat file 
   download = config.get('Common', 'download')
-  # look up database for data
+   
+  if DOWNLOAD != "":
+    download = DOWNLOAD
+
+  # look up database for data 
   db = MySQLdb.connect(host=host, user=user, passwd=password, db=database)
   cursor = db.cursor()  
   cursor.execute("SELECT * FROM account WHERE id=" + ID)
@@ -173,11 +144,9 @@ def main():
   ya_context['user_agent'] = rows[0][5]
   ya_context['proxy'] = PROXY
   ya_context['download'] = download
-  ya_context['time'] = TIME
  
   # loging to yandex direct and download a file whith a statistic for today
   autoclick(ya_context)
-  statistics2db(ya_context)
   db.close()
 
 if __name__=="__main__":
