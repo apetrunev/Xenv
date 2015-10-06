@@ -39,8 +39,6 @@ def stat2db(statfile, id_campaign):
           values.append(value) 
          
     for idx in xrange(1, len(keys)):
-      str = "%s -- [%s]" %(keys[idx], values[idx])
-      print str
       if u'Показы' in keys[idx]:
         stat_ctx['impressions'] = values[idx] 
       elif u'Клики' in keys[idx]:
