@@ -9,11 +9,12 @@ ssconvert=$(which ssconvert)
 
 download="/home/user/test"
 config="autoclick.cfg"
+id="1"
 
 $X stop 
 $X start
 
-$autoclick --conf $config --proxy 127.0.0.1:3128 --id 1 --dir $download
+$autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download
 
 # wait for two files 
 while :; do
@@ -25,9 +26,10 @@ while :; do
 	fi
 done
 
+# do processing 
 for file in $(ls $download); do
 	base=$(echo "$file" | cut -d'.' -f1)
         $ssconvert "$download/$file" "$download/$base.csv" 2>&1 >/dev/null
-        $stat2db --file "$download/$base.csv"
-	rm -f "$download/$file"
+        $stat2db --conf $config --file "$download/$base.csv" --id $id
+	rm -f "$download/$file" "$download/$base.csv"
 done
