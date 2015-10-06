@@ -12,8 +12,8 @@ start)
 	exit 0
 	;;
 stop)
-	$xvfb stop
 	$wmanager stop
+	$xvfb stop
 	exit 0
 	;;
 *)
