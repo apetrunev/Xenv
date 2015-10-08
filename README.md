@@ -1,0 +1,3 @@
+# autoclick
+
+start.sh
