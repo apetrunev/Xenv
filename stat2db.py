@@ -26,7 +26,20 @@ def stat2db(statfile, id_campaign):
     values = [] 
     
     for row in data:
-      if data.line_num == 2:
+      if data.line_num == 1:
+        tmp_str = unicode(row[0], "utf-8")
+        tmp_str = tmp_str.split(',')[0]
+        
+        pieces = tmp_str.split('"')
+        campaign_description = ""
+        for piece in pieces:
+          # trim spaces
+          piece = piece.strip()
+          if campaign_description == "":
+            campaign_description = piece
+          else:
+            campaign_description = campaign_description + " " + piece
+      elif data.line_num == 2:
         for col in xrange(3, len(row)):
           key = unicode(row[col], "utf-8")
           keys.append(key)
@@ -58,47 +71,50 @@ def stat2db(statfile, id_campaign):
         stat_ctx['goal_cost'] = values[idx]
       elif 'CTR' in keys[idx]:
         stat_ctx['ctr'] = values[idx]
- 
-    cursor.execute("SELECT id FROM statistic WHERE id_company=\"" + id_campaign + "\" and date=\"" + date + "\"")
+
+    cursor.execute("SELECT id FROM statistic WHERE id_company=\"" + id_campaign + "\" and date=\"" + date + "\" and company_description=\"" + campaign_description + "\"")
     records = cursor.fetchall()
+    db.commit()
     # insert new records
     if len(records) == 0:
       pattern = """(id_company, date, impressions, clicks, ctr,
                     expenditure, avg_cpc, depth, conversions,
-                    conversion_percent, goal_cost, roi, revenue)"""
-
-      cursor.execute("INSERT INTO statistic " + pattern + " VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    conversion_percent, goal_cost, roi, revenue, company_description)"""
+      
+      cursor.execute("INSERT INTO statistic " + pattern + " VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                         (id_campaign,
                          date,
                          stat_ctx['impressions'],
                          stat_ctx['clicks'],
                          stat_ctx['ctr'], 
-		         stat_ctx['expenditure'],
+      	                 stat_ctx['expenditure'],
                          stat_ctx['avg_cpc'],
                          stat_ctx['depth'],
                          stat_ctx['conversions'],
                          stat_ctx['conversion_percent'],
                          stat_ctx['goal_cost'],
                          stat_ctx['ROI'],
-                         stat_ctx['revenue']))
+                         stat_ctx['revenue'],
+       		         campaign_description))
       db.commit()
     else:
       pattern = """impressions=%s, clicks=%s, ctr=%s, expenditure=%s,
                    avg_cpc=%s, depth=%s, conversions=%s, conversion_percent=%s,
-                   goal_cost=%s, roi=%s, revenue=%s"""
+                   goal_cost=%s, roi=%s, revenue=%s company_description=\"%s\""""
        
-      cursor.execute("UPDATE statistic SET " + pattern + " WHERE id=\"" + id_campaign + "\" and date=\"" + date +"\"",
-		    (stat_ctx['impressions'],
+      cursor.execute("UPDATE statistic SET " + pattern + " WHERE id=\"" + id_campaign + "\" and date=\"" + date +"\" and company_description=\"" + campaign_description + "\"",
+      		    (stat_ctx['impressions'],
                      stat_ctx['clicks'],
                      stat_ctx['ctr'], 
-		     stat_ctx['expenditure'],
+      		     stat_ctx['expenditure'],
                      stat_ctx['avg_cpc'],
                      stat_ctx['depth'],
                      stat_ctx['conversions'],
                      stat_ctx['conversion_percent'],
                      stat_ctx['goal_cost'],
                      stat_ctx['ROI'],
-                     stat_ctx['revenue']))
+                     stat_ctx['revenue'],
+                     campaign_description))
       db.commit()
 
 def main():
@@ -131,7 +147,7 @@ def main():
   database = config.get('Database', 'database')
   download = config.get('Common', 'download')
   
-  db = MySQLdb.connect(host=host, user=user, passwd=password, db=database)
+  db = MySQLdb.connect(host=host, user=user, passwd=password, db=database, charset='utf8', use_unicode=True)
   cursor = db.cursor()  
  
   stat2db(CSV, ID)  
