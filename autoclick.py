@@ -19,6 +19,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 # Database
 db = None
@@ -70,28 +71,39 @@ def autoclick(ya_context):
   html_submit.click()
   # jump to the page with campaigns
   browser.get(url_direct)
-  # jump to the page with the statistic
-  browser.find_element_by_link_text('Статистика').click()
-  #
-  # today
-  #
-  browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
-  browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
-  # download as XLS-file
-  time.sleep(5)
-  browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
-  browser.find_element_by_xpath('//div/a/span').click()
-  #
-  # yesterday
-  #
-  browser.find_element_by_xpath('//span[text() = "вчера"]').click()
-  browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
-  # download as XLS-file
-  time.sleep(5)
-  browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
-  browser.find_element_by_xpath('//div/a/span').click()
-  #browser.find_element_by_link_text("скачать в виде XLS-файла").click()
-  #browser.find_element_by_xpath('//td[6]/table/tbody/tr/td[2]/a').click()
+  
+  # save main window
+  main_window = browser.current_window_handle
+
+  stats = browser.find_elements_by_link_text('Статистика')
+  for stat in stats:
+    stat_link = stat.get_attribute("href")
+    # open a new tab
+    browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 't')
+    # open statistic in the new tab
+    browser.get(stat_link)
+    #
+    # today
+    #
+    browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
+    browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
+    # download as XLS-file
+    time.sleep(5)
+    browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
+    browser.find_element_by_xpath('//div/a/span').click()
+    #
+    # yesterday
+    #
+    browser.find_element_by_xpath('//span[text() = "вчера"]').click()
+    browser.find_element_by_xpath('(//button[@type="button"])[3]').click()
+    # download as XLS-file
+    time.sleep(5)
+    browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
+    browser.find_element_by_xpath('//div/a/span').click()
+    # close current tab and switch to main window    
+    browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
+    browser.switch_to_window(main_window)
+    time.sleep(5)
 
 def main():
   global db, cursor
