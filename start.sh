@@ -18,7 +18,7 @@ $X start
 nfiles=$($autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download)
 
 trimspaces() {
-	echo $1 | sed -E -e 's/^[ ]+//g' -e 's/[ ]+$//g'
+	echo $1 | sed -E -e 's/^[ ]//g' -e 's/[ ]$//g'
 }
 
 # wait for two files 
@@ -28,9 +28,7 @@ while :; do
         count=$(trimspaces $count)
         nfiles=$(trimspaces $nfiles)
         
-        if [ -z "$count" ]; then 
-        	continue
-        elif [ $count -lt $nfiles ]; then
+        if [ -z "$count" ] || [ $count -lt $nfiles ]; then
 		continue
 	else
 		break
