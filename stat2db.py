@@ -73,9 +73,10 @@ def stat2db(statfile, id_campaign):
         stat_ctx['ctr'] = values[idx]
 
     cursor.execute("SELECT id FROM statistic WHERE id_company=\"" + id_campaign + "\" and date=\"" + date + "\" and company_description=\"" + campaign_description + "\"")
-    records = cursor.fetchall()
     db.commit()
-    # insert new records
+     
+    records = cursor.fetchall()
+        # insert new records
     if len(records) == 0:
       pattern = """(id_company, date, impressions, clicks, ctr,
                     expenditure, avg_cpc, depth, conversions,
