@@ -9,18 +9,29 @@ ssconvert=$(which ssconvert)
 
 download="/home/user/test"
 config="autoclick.cfg"
-id="1"
+id="2"
 
 $X stop 
 $X start
 
-$autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download
+# number of file we expect
+nfiles=$($autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download)
+
+trimspaces() {
+	echo $1 | sed -E -e 's/^[ ]//g' -e 's/[ ]$//g'
+}
 
 # wait for two files 
 while :; do
 	count=$(ls $download | wc -l)
-	if [ $count -lt 2 ]; then
-		sleep 2
+ 
+        count=$(trimspaces $count)
+        nfiles=$(trimspaces $nfiles)
+        
+        if [ -z "$count" ]; then 
+        	continue
+        elif [ $count -lt $nfiles ]; then
+		continue
 	else
 		break
 	fi

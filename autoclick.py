@@ -71,7 +71,8 @@ def autoclick(ya_context):
   html_submit.click()
   # jump to the page with campaigns
   browser.get(url_direct)
-  
+ 
+  ndownloads = 0 
   # save main window
   main_window = browser.current_window_handle
 
@@ -100,11 +101,15 @@ def autoclick(ya_context):
     time.sleep(5)
     browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
     browser.find_element_by_xpath('//div/a/span').click()
+    # increment number of download files 
+    ndownloads =  ndownloads + int(2)
     # close current tab and switch to main window    
     browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
     browser.switch_to_window(main_window)
     time.sleep(5)
-
+ 
+  return ndownloads
+ 
 def main():
   global db, cursor
   try:
@@ -158,8 +163,12 @@ def main():
   ya_context['download'] = download
  
   # loging to yandex direct and download a file whith a statistic for today
-  autoclick(ya_context)
+  ndownloads = autoclick(ya_context)
   db.close()
 
+  return ndownloads
+
 if __name__=="__main__":
-  main()
+  n = main()
+  print "%d" % n
+  sys.stdout.flush()
