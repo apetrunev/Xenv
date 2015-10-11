@@ -18,7 +18,7 @@ start)
 	fi	
 	# create screen
 	( exec 2>&1 >/dev/null Xvfb -screen 0 1280x720x24+32 -ac & ) 2>&1 1>/dev/null
-	# wait for sceen is available
+	# wait for sceen
 	while :; do
 		( exec 2>&1 >/dev/null xdpyinfo -display :0 ) 2>&1 1>/dev/null
 		if [ $? -eq 0 ]; then
