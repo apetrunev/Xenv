@@ -21,7 +21,7 @@ trimspaces() {
 	echo $1 | sed -E -e 's/^[ ]//g' -e 's/[ ]$//g'
 }
 
-# wait for two files 
+# wait for files 
 while :; do
 	count=$(ls $download | wc -l)
  
