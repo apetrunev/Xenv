@@ -20,6 +20,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException
 
 # Database
 db = None
@@ -31,7 +32,7 @@ def usage():
   print "Usage information"
 
 def autoclick(ya_context):
-  global browser
+  global browser, db, cursor
   url_auth = "https://passport.yandex.ru/auth"
   url_direct = "https://direct.yandex.ru/registered/main.pl?cmd=showCamps"
 
@@ -76,6 +77,18 @@ def autoclick(ya_context):
   # save main window
   main_window = browser.current_window_handle
 
+  wallet = None
+
+  try:
+    wallet = browser.find_element_by_xpath('//div[@class="b-wallet-rest__total"]').text
+    m = re.search("(^[0-9]+\s*[0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
+    money = m.group(0)
+  except NoSuchElementException:
+    money = "-"
+   
+  cursor.execute('''UPDATE account SET wallet=%s WHERE id=%s''', (money, ya_context['id']))
+  db.commit()
+    
   stats = browser.find_elements_by_link_text('Статистика')
   for stat in stats:
     stat_link = stat.get_attribute("href")
@@ -147,13 +160,14 @@ def main():
     download = DOWNLOAD
 
   # look up database for data 
-  db = MySQLdb.connect(host=host, user=user, passwd=password, db=database)
+  db = MySQLdb.connect(host=host, user=user, passwd=password, db=database, charset='utf8', use_unicode=True)
   cursor = db.cursor()  
   cursor.execute("SELECT * FROM account WHERE id=" + ID)
   db.commit()
   rows = cursor.fetchall()
   
   ya_context = {}
+  ya_context['id'] = ID
   ya_context['login'] = rows[0][1]
   ya_context['password'] = rows[0][2] 
   ya_context['resolution_w'], ya_context['resolution_h'] = rows[0][3].split('x')
@@ -164,7 +178,7 @@ def main():
  
   # loging to yandex direct and download a file whith a statistic for today
   ndownloads = autoclick(ya_context)
-  db.close()
+  #db.close()
 
   return ndownloads
 
