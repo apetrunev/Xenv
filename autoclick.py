@@ -77,8 +77,6 @@ def autoclick(ya_context):
   # save main window
   main_window = browser.current_window_handle
 
-  wallet = None
-
   try:
     wallet = browser.find_element_by_xpath('//div[@class="b-wallet-rest__total"]').text
     m = re.search("(^[0-9]+\s*[0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
