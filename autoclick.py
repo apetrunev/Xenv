@@ -12,6 +12,7 @@ import codecs
 import subprocess
 import ConfigParser
 import MySQLdb
+import datetime 
 
 from selenium import webdriver
 from selenium.webdriver.common.proxy import *
@@ -77,14 +78,18 @@ def autoclick(ya_context):
   # save main window
   main_window = browser.current_window_handle
 
+  wallet = None
+
   try:
     wallet = browser.find_element_by_xpath('//div[@class="b-wallet-rest__total"]').text
     m = re.search("(^[0-9]+\s*[0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
     money = m.group(0)
   except NoSuchElementException:
     money = "-"
-   
-  cursor.execute('''UPDATE account SET wallet=%s WHERE id=%s''', (money, ya_context['id']))
+  
+  now = datetime.datetime.now()
+  date = "%s-%s-%s" % (now.year, now.month, now.day) 
+  cursor.execute('''INSERT INTO wallet (id_company, money, date) VALUES(%s, %s, %s)''', (ya_context['id'], money, date))
   db.commit()
     
   stats = browser.find_elements_by_link_text('Статистика')
