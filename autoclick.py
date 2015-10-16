@@ -88,8 +88,17 @@ def autoclick(ya_context):
     money = "-"
   
   now = datetime.datetime.now()
-  date = "%s-%s-%s" % (now.year, now.month, now.day) 
-  cursor.execute('''INSERT INTO wallet (id_company, money, date) VALUES(%s, %s, %s)''', (ya_context['id'], money, date))
+  date = "%s-%s-%s" % (now.year, now.month, now.day)
+  cursor.execute('''SELECT id from wallet WHERE id_company=%s AND date=%s''', (ya_context['id'], date)) 
+  db.commit()
+
+  records = cursor.fetchall()
+  
+  if len(records) == 0:
+    cursor.execute('''INSERT INTO wallet (id_company, money, date) VALUES(%s, %s, %s)''', (ya_context['id'], money, date))
+  else:
+    cursor.execute('''UPDATE wallet SET money=%s WHERE id_company=%s AND date=%s''', (money, ya_context['id'], date))
+  
   db.commit()
     
   stats = browser.find_elements_by_link_text('Статистика')
