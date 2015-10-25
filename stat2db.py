@@ -102,19 +102,21 @@ def stat2db(statfile, id_campaign):
       pattern = '''impressions=\"%s\", clicks=\"%s\", ctr=\"%s\", expenditure=\"%s\",
                    avg_cpc=\"%s\", depth=\"%s\", conversions=\"%s\", conversion_percent=\"%s\",
                    goal_cost=\"%s\", roi=\"%s\", revenue=\"%s\"'''
-      
-      cursor.execute("UPDATE statistic SET " + pattern + " WHERE id=\"" + id_campaign + "\" and date=\"" + date +"\" and company_description=\"" + campaign_description + "\"", 
-                        (stat_ctx['impressions'],
-                         stat_ctx['clicks'],
-                         stat_ctx['ctr'],
-                         stat_ctx['expenditure'],
-                         stat_ctx['avg_cpc'],
-                         stat_ctx['depth'],
-                         stat_ctx['conversions'],
-                         stat_ctx['conversion_percent'],
-                         stat_ctx['goal_cost'],
-                         stat_ctx['ROI'],
-                         stat_ctx['revenue']))
+  
+      query = "UPDATE statistic SET " + pattern + " WHERE id_company=\"" + id_campaign + "\" and DATE=\"" + date +"\" and company_description=\"" + campaign_description + "\""
+   
+      cursor.execute(query,
+                     (stat_ctx['impressions'], 
+                     stat_ctx['clicks'],
+                     stat_ctx['ctr'],
+                     stat_ctx['expenditure'],
+                     stat_ctx['avg_cpc'],
+                     stat_ctx['depth'],
+                     stat_ctx['conversions'],
+                     stat_ctx['conversion_percent'],
+                     stat_ctx['goal_cost'],
+                     stat_ctx['ROI'],
+                     stat_ctx['revenue']))
       db.commit()
 
 def main():
