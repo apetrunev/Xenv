@@ -9,7 +9,7 @@ ssconvert=$(which ssconvert)
 
 download="/home/user/test"
 config="autoclick.cfg"
-id="2"
+id="139"
 
 $X stop 
 $X start
@@ -18,10 +18,14 @@ $X start
 nfiles=$($autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download)
 
 trimspaces() {
-	echo $1 | sed -E -e 's/^[ ]//g' -e 's/[ ]$//g'
+	echo "$1" | sed -E -e 's/^[[:space:]]+//g' -e 's/[[:space:]]+$//g'
 }
 
-# wait for files 
+strstr() {
+	echo $1 | awk -v pattern=$2 ' $0 ~ pattern { print 1; } $0 !~ pattern { print 0; }'
+}
+
+# wait for two files 
 while :; do
 	count=$(ls $download | wc -l)
  
@@ -38,7 +42,12 @@ done
 # do processing 
 for file in $(ls $download); do
 	base=$(echo "$file" | cut -d'.' -f1)
-        $ssconvert "$download/$file" "$download/$base.csv" 2>&1 >/dev/null
-        $stat2db --conf $config --file "$download/$base.csv" --id $id
-	rm -f "$download/$file" "$download/$base.csv"
+        $ssconvert "$download/$file" "$download/$base.csv" 2>&1 1>/dev/null
+        match=$(strstr "$file" "campaign")
+        if [ $match -eq 1 ]; then
+          stat2db-login.py --conf $config --file "$download/$base.csv" --id $id
+        else
+	  $stat2db --conf $config --file "$download/$base.csv" --id $id
+	fi
+        rm -f "$download/$file" "$download/$base.csv"
 done
