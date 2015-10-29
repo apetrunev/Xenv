@@ -4,12 +4,12 @@
 import os
 import re
 import sys
-import getopt
-import time
 import csv
 import types
+import getopt
 import ConfigParser
 import MySQLdb
+
 
 db = None
 cursor = None 
@@ -86,44 +86,36 @@ def get_stat_ctx2(statfile, id_campaign):
       # read columns' names
       if data.line_num == 2:
         for col in xrange(2, len(row)):
-          key = unicode(row[col], "utf-8")      
+          key = unicode(row[col], "utf-8")
           keys.append(key)
-      else:
-        m = re.search("(^[0-9]+$)", unicode(row[0], 'utf-8'))
-        if type(m) == types.NoneType:
-          continue
-        
-        campaign_number = m.group(0)
+      elif data.line_num == 3:
         for col in xrange(2, len(row)):
           value = unicode(row[col], "utf-8")
           values.append(value)
         
-        campaign_number = campaign_number.encode('ascii', 'ignore')
-	stat_ctx[campaign_number] = {}
-
         for idx in xrange(1, len(keys)):
           if u'Показы' in keys[idx]:
-            stat_ctx[campaign_number]['impressions'] = values[idx] 
+            stat_ctx['impressions'] = values[idx] 
           elif u'Клики' in keys[idx]:
-            stat_ctx[campaign_number]['clicks'] = values[idx]
+            stat_ctx['clicks'] = values[idx]
           elif u'Расход' in keys[idx]:
-            stat_ctx[campaign_number]['expenditure'] = values[idx]
+            stat_ctx['expenditure'] = values[idx]
           elif u'Ср. цена клика' in keys[idx]:
-            stat_ctx[campaign_number]['avg_cpc'] = values[idx]
+            stat_ctx['avg_cpc'] = values[idx]
           elif u'Глубина' in keys[idx]:
-            stat_ctx[campaign_number]['depth'] = values[idx]
+            stat_ctx['depth'] = values[idx]
           elif u'Конверсия (%)' in keys[idx]:
-            stat_ctx[campaign_number]['conversion_percent'] = values[idx]
+            stat_ctx['conversion_percent'] = values[idx]
           elif u'Конверсии' in keys[idx]:
-	    stat_ctx[campaign_number]['conversions'] = values[idx]
+	    stat_ctx['conversions'] = values[idx]
           elif u'Рентабельность' in keys[idx]:
-            stat_ctx[campaign_number]['ROI'] = values[idx]
+            stat_ctx['ROI'] = values[idx]
           elif u'Доход' in keys[idx]:
-            stat_ctx[campaign_number]['revenue'] = values[idx]
+            stat_ctx['revenue'] = values[idx]
           elif u'Цена цели' in keys[idx]:
-            stat_ctx[campaign_number]['goal_cost'] = values[idx]
+            stat_ctx['goal_cost'] = values[idx]
           elif 'CTR' in keys[idx]:
-            stat_ctx[campaign_number]['ctr'] = values[idx]
+            stat_ctx['ctr'] = values[idx]
 
   return stat_ctx
 
@@ -136,66 +128,63 @@ def stat2db(statfile, id_campaign, tablename):
   #
   # statistic per campaign
   #
-  cstat_ctx = get_stat_ctx2(statfile, id_campaign)
-  for campaign_number in cstat_ctx:
-    stat_ctx = cstat_ctx[campaign_number]
+  stat_ctx = get_stat_ctx2(statfile, id_campaign)
 
-    query = "SELECT id FROM " + tablename + \
-            " WHERE id_company=\"" + id_campaign + \
-            "\" and date=\"" + date + \
-            "\" and company_description LIKE \"" + campaign_number + "\""
- 
+  query = "SELECT id FROM " + tablename + \
+          " WHERE id_company=\"" + id_campaign + \
+          "\" and date=\"" + date + "\""
+    
+  cursor.execute(query)
+  db.commit()
+
+  records = cursor.fetchall()
+  
+  if len(records) == 0:
+    pattern = """(id_company, date, impressions, clicks, ctr,
+                  expenditure, avg_cpc, depth, conversions,
+                  conversion_percent, goal_cost, roi, revenue)"""
+    
+    query_fmt = "INSERT INTO " + tablename + " " + pattern + \
+                  " VALUES(\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\")"
+
+    query = query_fmt % (id_campaign,
+                         date,
+                         stat_ctx['impressions'],
+                         stat_ctx['clicks'],
+                         stat_ctx['ctr'], 
+      	                 stat_ctx['expenditure'],
+                         stat_ctx['avg_cpc'],
+                         stat_ctx['depth'],
+                         stat_ctx['conversions'],
+                         stat_ctx['conversion_percent'],
+                         stat_ctx['goal_cost'],
+                         stat_ctx['ROI'],
+                         stat_ctx['revenue']) 
+      
     cursor.execute(query)
     db.commit()
-
-    records = cursor.fetchall()
+  else:
+    pattern = """impressions=\"%s\", clicks=\"%s\", ctr=\"%s\", expenditure=\"%s\",
+                 avg_cpc=\"%s\", depth=\"%s\", conversions=\"%s\", conversion_percent=\"%s\",
+                 goal_cost=\"%s\", roi=\"%s\", revenue=\"%s\" """
   
-    if len(records) == 0:
-      pattern = """(id_company, date, impressions, clicks, ctr,
-                    expenditure, avg_cpc, depth, conversions,
-                    conversion_percent, goal_cost, roi, revenue, company_description)"""
+    query_fmt = "UPDATE statistic SET " + pattern + \
+                " WHERE id_company=\"" + id_campaign + "\" and DATE=\"" + date + "\""
+	
+    query = query_fmt % (stat_ctx['impressions'], 
+                         stat_ctx['clicks'],
+                         stat_ctx['ctr'],
+                         stat_ctx['expenditure'],
+                         stat_ctx['avg_cpc'],
+                         stat_ctx['depth'],
+                         stat_ctx['conversions'],
+                         stat_ctx['conversion_percent'],
+                         stat_ctx['goal_cost'],
+                         stat_ctx['ROI'],
+                         stat_ctx['revenue'])
     
-      query_fmt = "INSERT INTO " + tablename + " " + pattern + \
-                  " VALUES(\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\")"
-
-      query = query_fmt % (id_campaign,
-                           date,
-                           stat_ctx['impressions'],
-                           stat_ctx['clicks'],
-                           stat_ctx['ctr'], 
-      	                   stat_ctx['expenditure'],
-                           stat_ctx['avg_cpc'],
-                           stat_ctx['depth'],
-                           stat_ctx['conversions'],
-                           stat_ctx['conversion_percent'],
-                           stat_ctx['goal_cost'],
-                           stat_ctx['ROI'],
-                           stat_ctx['revenue'],
-       		           campaign_number) 
-       
-      cursor.execute(query)
-      db.commit()
-    else:
-      pattern = """impressions=%s, clicks=%s, ctr=%s, expenditure=%s,
-                   avg_cpc=%s, depth=%s, conversions=%s, conversion_percent=%s,
-                   goal_cost=%s, roi=%s, revenue=%s"""
-  
-      query = "UPDATE statistic SET " + pattern + \
-              " WHERE id_company=\"" + id_campaign + "\" and DATE=\"" + date +"\" and company_description LIKE \"" + campaign_number + "\""
-   
-      cursor.execute(query,
-                    (stat_ctx['impressions'], 
-                     stat_ctx['clicks'],
-                     stat_ctx['ctr'],
-                     stat_ctx['expenditure'],
-                     stat_ctx['avg_cpc'],
-                     stat_ctx['depth'],
-                     stat_ctx['conversions'],
-                     stat_ctx['conversion_percent'],
-                     stat_ctx['goal_cost'],
-                     stat_ctx['ROI'],
-                     stat_ctx['revenue']))
-      db.commit()
+    cursor.execute(query)
+    db.commit()
 
 def main():
   global db, cursor
