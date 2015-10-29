@@ -79,7 +79,8 @@ def autoclick(ya_context):
   main_window = browser.current_window_handle
 
   wallet = None
-
+  
+  # money in the wallet
   try:
     wallet = browser.find_element_by_xpath('//div[@class="b-wallet-rest__total"]').text
     m = re.search("(^[0-9]+\s*[0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
@@ -127,12 +128,41 @@ def autoclick(ya_context):
     browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
     browser.find_element_by_xpath('//div/a/span').click()
     # increment number of download files 
-    ndownloads =  ndownloads + int(2)
+    ndownloads =  ndownloads + 2
     # close current tab and switch to main window    
     browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
     browser.switch_to_window(main_window)
-    time.sleep(5)
+    #time.sleep(5)
+  
+  #
+  # statistic per login
+  #
+
+  login_stat = browser.find_element_by_link_text('Статистика по всем кампаниям')
+  login_stat_href = login_stat.get_attribute('href')
+  browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 't')
+  browser.get(login_stat_href)
  
+  browser.find_element_by_xpath('//span[text() = "сегодня"]').click()
+  browser.find_element_by_xpath('(//button[@type="button"])[2]').click()
+  time.sleep(5)
+  # download as XLS-file 
+  browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
+  browser.find_element_by_xpath('//div/a/span').click()
+  #  
+  browser.find_element_by_xpath('//span[text() = "вчера"]').click()
+  browser.find_element_by_xpath('(//button[@type="button"])[2]').click()
+  time.sleep(5)
+  # download as XLS-file 
+  browser.find_element_by_xpath('//div[@class="b-statistics-form__download-as-xls"]').click()
+  browser.find_element_by_xpath('//div/a/span').click()
+   
+  browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
+  browser.switch_to_window(main_window)
+  time.sleep(5)
+ 
+  ndownloads = ndownloads + 2
+
   return ndownloads
  
 def main():
