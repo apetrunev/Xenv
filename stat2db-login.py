@@ -183,9 +183,8 @@ def stat2db(statfile, id_campaign, tablename):
                          stat_ctx['ROI'],
                          stat_ctx['revenue'])
     
-    print query
-    #cursor.execute(query)
-    #db.commit()
+    cursor.execute(query)
+    db.commit()
 
 def main():
   global db, cursor
