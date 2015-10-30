@@ -145,7 +145,7 @@ def stat2db(statfile, id_campaign, tablename):
                   conversion_percent, goal_cost, roi, revenue)"""
     
     query_fmt = "INSERT INTO " + tablename + " " + pattern + \
-                  " VALUES(\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\")"
+                " VALUES(\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\")"
 
     query = query_fmt % (id_campaign,
                          date,
@@ -164,11 +164,11 @@ def stat2db(statfile, id_campaign, tablename):
     cursor.execute(query)
     db.commit()
   else:
-    pattern = """impressions=\"%s\", clicks=\"%s\", ctr=\"%s\", expenditure=\"%s\",
-                 avg_cpc=\"%s\", depth=\"%s\", conversions=\"%s\", conversion_percent=\"%s\",
-                 goal_cost=\"%s\", roi=\"%s\", revenue=\"%s\" """
+    pattern = """impressions='%s', clicks='%s', ctr='%s', expenditure='%s',
+                 avg_cpc='%s', depth='%s', conversions='%s', conversion_percent='%s',
+                 goal_cost='%s', roi='%s', revenue='%s'"""
   
-    query_fmt = "UPDATE statistic SET " + pattern + \
+    query_fmt = "UPDATE " + tablename + " SET " + pattern + \
                 " WHERE id_company=\"" + id_campaign + "\" and DATE=\"" + date + "\""
 	
     query = query_fmt % (stat_ctx['impressions'], 
@@ -183,8 +183,9 @@ def stat2db(statfile, id_campaign, tablename):
                          stat_ctx['ROI'],
                          stat_ctx['revenue'])
     
-    cursor.execute(query)
-    db.commit()
+    print query
+    #cursor.execute(query)
+    #db.commit()
 
 def main():
   global db, cursor
