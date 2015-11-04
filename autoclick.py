@@ -83,8 +83,8 @@ def autoclick(ya_context):
   # money in the wallet
   try:
     wallet = browser.find_element_by_xpath('//div[@class="b-wallet-rest__total"]').text
-    m = re.search("(^[0-9]+\s*[0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
-    money = m.group(0)
+    m = re.search("(^[0-9]+)\s*([0-9]+[.][0-9]*)", wallet.encode('ascii', 'ignore'))
+    money = m.group(1) + m.group(2)
   except NoSuchElementException:
     money = "-"
   
@@ -132,12 +132,9 @@ def autoclick(ya_context):
     # close current tab and switch to main window    
     browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 'w')
     browser.switch_to_window(main_window)
-    #time.sleep(5)
-  
   #
   # statistic per login
   #
-
   login_stat = browser.find_element_by_link_text('Статистика по всем кампаниям')
   login_stat_href = login_stat.get_attribute('href')
   browser.find_element_by_tag_name('body').send_keys(Keys.CONTROL + 't')
@@ -220,7 +217,7 @@ def main():
  
   # loging to yandex direct and download a file whith a statistic for today
   ndownloads = autoclick(ya_context)
-  #db.close()
+  db.close()
 
   return ndownloads
 

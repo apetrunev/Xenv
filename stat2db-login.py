@@ -10,66 +10,9 @@ import getopt
 import ConfigParser
 import MySQLdb
 
-
 db = None
 cursor = None 
 
-def get_stat_ctx(statfile, id_campaign):
-  stat_ctx = {}
-  
-  with open(statfile, 'r') as csv_file:
-    data = csv.reader(csv_file, delimiter=',')
-    keys = []
-    values = []
-  
-    for row in data:
-      if data.line_num == 1:
-        tmp_str = unicode(row[0], "utf-8")
-        tmp_str = tmp_str.split(',')[0]
-        
-        pieces = tmp_str.split('"')
-        campaign_description = ""
-        for piece in pieces:
-          # trim spaces
-          piece = piece.strip()
-          if campaign_description == "":
-            campaign_description = piece
-          else:
-            campaign_description = campaign_description + " " + piece
-      elif data.line_num == 2:
-        for col in xrange(3, len(row)):
-          key = unicode(row[col], "utf-8")
-          keys.append(key)
-      elif data.line_num == 3:
-        for col in xrange(3, len(row)):
-          value = unicode(row[col], "utf-8")
-          values.append(value) 
-         
-    for idx in xrange(1, len(keys)):
-      if u'Показы' in keys[idx]:
-        stat_ctx['impressions'] = values[idx] 
-      elif u'Клики' in keys[idx]:
-        stat_ctx['clicks'] = values[idx]
-      elif u'Расход' in keys[idx]:
-        stat_ctx['expenditure'] = values[idx]
-      elif u'Ср. цена клика' in keys[idx]:
-        stat_ctx['avg_cpc'] = values[idx]
-      elif u'Глубина' in keys[idx]:
-        stat_ctx['depth'] = values[idx]
-      elif u'Конверсия (%)' in keys[idx]:
-        stat_ctx['conversion_percent'] = values[idx]
-      elif u'Конверсии' in keys[idx]:
-	stat_ctx['conversions'] = values[idx]
-      elif u'Рентабельность' in keys[idx]:
-        stat_ctx['ROI'] = values[idx]
-      elif u'Доход' in keys[idx]:
-        stat_ctx['revenue'] = values[idx]
-      elif u'Цена цели' in keys[idx]:
-        stat_ctx['goal_cost'] = values[idx]
-      elif 'CTR' in keys[idx]:
-        stat_ctx['ctr'] = values[idx]
-
-    return stat_ctx
 #
 # get statistic per login 
 #
