@@ -1,4 +1,4 @@
-#!/bin/sh
+##!/bin/sh
 
 export PATH="$PATH:/home/user"
 
@@ -9,13 +9,10 @@ ssconvert=$(which ssconvert)
 
 download="/home/user/test"
 config="autoclick.cfg"
-id="139"
+id="141"
 
 $X stop 
 $X start
-
-# number of file we expect
-nfiles=$($autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download)
 
 trimspaces() {
 	echo "$1" | sed -E -e 's/^[[:space:]]+//g' -e 's/[[:space:]]+$//g'
@@ -24,6 +21,14 @@ trimspaces() {
 strstr() {
 	echo $1 | awk -v pattern=$2 ' $0 ~ pattern { print 1; } $0 !~ pattern { print 0; }'
 }
+
+# number of file we expect
+nfiles=$($autoclick --conf $config --proxy 127.0.0.1:3128 --id $id --dir $download)
+
+if [ $nfiles -eq 0 ]; then
+	echo "Account has been blocked.."
+        exit 1
+fi
 
 # wait for two files 
 while :; do

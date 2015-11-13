@@ -71,10 +71,29 @@ def autoclick(ya_context):
   html_passwd.clear()
   html_passwd.send_keys(ya_context['password'])
   html_submit.click()
+  #
   # jump to the page with campaigns
+  # 
   browser.get(url_direct)
  
-  ndownloads = 0 
+  ndownloads = 0
+ 
+  # 
+  # check where account has blocked
+  # 
+  try:
+    blocked = browser.find_element_by_xpath('//p[@class="p-common-error__message"]').text;
+    query_fmt = 'UPDATE account SET status=\"%s\" WHERE id=%s'
+    query = query_fmt % ("blocked", ya_context['id']) 
+    cursor.execute(query) 
+    db.commit()
+    return ndownloads
+  except NoSuchElementException:
+    query_fmt = 'UPDATE account SET status=\"%s\" WHERE id=%s'
+    query = query_fmt % ("active", ya_context['id']) 
+    cursor.execute(query) 
+    db.commit()
+ 
   # save main window
   main_window = browser.current_window_handle
 
