@@ -9,7 +9,7 @@ start)
 		echo "$wmanager already running..."
 		exit 1
 	fi
-	( exec 2>&1 >/dev/null $wmanager & ) 2>&1 1>/dev/null
+	($wmanager) 2>&1 1>/dev/null &
 	exit 0
 	;;
 stop)
