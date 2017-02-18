@@ -1,3 +1,3 @@
-# autoclick
+# Xenv
 
-start.sh
+Enable X Window on Server with no screen available
